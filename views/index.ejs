@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/stylesheets/style.css" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+  <style>
+    .userMsg {
+      width: 38%;
+      padding: 12px 10px;
+      background-color: rgb(21, 4, 146);
+      margin: 15px 0;
+      text-wrap: wrap;
+      color: white;
+      border-radius: 5px;
+      font-size: large;
+    }
+
+    .right {
+      position: relative;
+      left: 62%;
+    }
+
+    .left {
+      position: relative;
+      /* right: 62%; */
+    }
+  </style>
+</head>
+
+<body class="w-full h-screen">
+  <div id="usernameInput" class="w-full bg-zinc-700 flex flex-col justify-center items-center p-8 rounded-md">
+    <div id="instruction" class="mb-5 text-white tracking-tight">
+      <h1 class="text-3xl font-semibold">Welcome to my chat application</h1>
+      <p class="text-center pt-4 text-xl text-zinc-300">
+        Enter your name to go to chatting page
+      </p>
+    </div>
+    <input type="text" id="username" name="username" placeholder="Enter Your Name" class="w-64 rounded outline-none" />
+    <button onclick="varification()" class="bg-blue-500 mt-5 text-center m-auto hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+      Enter Your Name
+    </button>
+    <div id="text" class="text-center mt-6 text-xl">
+      <div>
+        <p id="successfulMessage"></p>
+        <button onclick="chatBegin()" style="display: none" class="bg-blue-500 mt-5 text-center m-auto hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" id="startChat">
+          Start Chatting
+        </button>
+      </div>
+      <div>
+        <p id="failureMessage" class="text-red-500 font-semibold"></p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: none" id="chatting" class="w-full p-5 h-[87vh] items-end justify-center rounded flex-col bg-red-300">
+    <div id="chatbox" class="w-full h-full p-3 overflow-auto bg-red-500 rounded">
+    </div>
+    <div id="msg" class="flex w-full mt-2 justify-center items-center">
+      <input type="text" id="message" name="message" class="w-96 rounded outline-none" placeholder="Enter Your Message" />
+      <button onclick="sendMessage()" class="ml-4 rounded text-white text-lg bg-zinc-400 px-5 py-2">
+        Send
+      </button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js" integrity="sha512-luMnTJZ7oEchNDZAtQhgjomP1eZefnl82ruTH/3Oj/Yu5qYtwL7+dVRccACS/Snp1lFXq188XFipHKYE75IaQQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    var socket = io();
+
+    function handleText(userSentMessage, positionOfText) {
+      let msgContainer = document.createElement("div");
+      msgContainer.textContent = userSentMessage;
+      msgContainer.classList.add("userMsg", positionOfText);
+      document.querySelector("#chatbox").appendChild(msgContainer);
+    }
+
+    function varification() {
+      let username = document.querySelector("#username").value;
+      if (username == "") {
+        alert("Please enter your name");
+      } else {
+        socket.emit("sendUsername", username);
+      }
+
+
+
+      socket.on("successMessage", function(message) {
+        document.querySelector("#successfulMessage").textContent =
+          message.message;
+        document.querySelector("#startChat").style.display = "block";
+        document.querySelector("#startChat").textContent = message.ready;
+      });
+
+      socket.on("errorMessage", function(message) {
+        document.querySelector("#failureMessage").textContent =
+          message.message;
+      });
+
+      setTimeout(() => {
+        document.querySelector("#successfulMessage").textContent = "";
+      }, 4000);
+      setTimeout(() => {
+        document.querySelector("#failureMessage").textContent = "";
+      }, 4000);
+
+      socket.on("joined-chat", {
+        username: username
+      })
+
+      socket.on("user-joined", function(data) {
+        console.log(data)
+        handleText(`${data} joined the chat`, "right");
+      })
+    }
+
+    socket.on("recievedMessage", function(data) {
+      handleText(`${data.nameOfUser}: ${data.message}`, "left");
+    });
+
+    function chatBegin() {
+      document.querySelector("#chatting").style.display = "flex";
+      document.querySelector("#usernameInput").style.display = "none";
+    }
+
+    function sendMessage() {
+      let userMessage = document.querySelector("#message").value;
+      handleText(`You: ${userMessage}`, "right");
+      socket.emit("sendMessage", userMessage);
+      document.querySelector("#message").value = "";
+    }
+  </script>
+</body>
+
+</html>
